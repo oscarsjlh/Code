@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Todos</title>
+    <script src="/static/htmx.min.js"></script>
+    <link href="/static/tailwind.css" rel="stylesheet" />
+  </head>
+  <body
+    class="flex flex-col items-center justify-center min-h-screen bg-gray-700"
+  >
+    <div
+      class="text-center text-neutral-content p-4 rounded-lg shadow-lg bg-gray-600"
+    >
+      <h1 class="text-left text-white mb-6 text-2xl font-semibold">Todos</h1>
+      <form class="mb-4 flex flex-col space-y-4 text-left" action="/new-todo">
+        <label for="todo" class="text-white text-left">Insert New Todo:</label>
+        <input
+          type="text"
+          class="w-full max-w-md px-4 py-2 border border-gray-300 rounded-md focus:ring focus:ring-blue-200"
+          id="todo"
+          name="todo"
+        />
+        <button
+          type="submit"
+          class="px-6 py-3 text-white bg-blue-500 rounded-md hover:bg-blue-700 focus:ring focus:ring-blue-200"
+        >
+          Add Todo
+        </button>
+      </form>
+      <div class="w-full max-w-md overflow-x-auto">
+        <table class="w-full table-auto border border-gray-500">
+          <thead>
+            <tr>
+              <th class="px-4 py-2 text-left border-b border-gray-500">
+                Action
+              </th>
+              <th class="px-4 py-2 border-b border-gray-500"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {{range .}}
+            <tr>
+              <td
+                class="px-4 py-2 text-left border-b border-gray-500 {{if .Status }} line-through {{end}}"
+              >
+                {{ .Task_name}}
+              </td>
+              <td></td>
+            </tr>
+            {{end}}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </body>
+</html>
