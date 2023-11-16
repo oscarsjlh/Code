@@ -9,14 +9,16 @@ import (
 
 var dsn = os.Getenv("TODO_DB_DSN")
 
-func main(t *testing.T) {
-	dsn := os.Getenv("TODO_DB_DSN")
-	m, err := migrate.New(
-		"file://migrate_tests",
-		dsn,
-	)
-	if err != nil {
-		log.Fatal(err)
+func TestTodoOperations(t *testing.T) {
+	tests := []struct {
+		name string
+		test func(*testing.T)
+	}{
+		{"InsertTodo", func(*testing.T) { TestInsertTodo(t) }},
+		{"GetTodo", TestGetTodo},
+		{"DeleteTodo", TestDeleteTodo},
+		{"MarkTodoAsDone", TestMarkTodoAsDone},
+		{"EditTodo", TestEditTodo},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -48,14 +50,8 @@ func teardownTest(pg *Postgres) {
 }
 
 func TestInsertTodo(t *testing.T) {
-	pg, err := setupTest()
-	if err != nil {
-		t.Fatalf("Failed to setup test: %v", err)
-	}
-	defer teardownTest(pg)
-
 	args := "Test Todo"
-	err = pg.InsertTodo(args)
+	err := pg.InsertTodo(args)
 	if err != nil {
 		t.Errorf("InsertTodo failed: %v", err)
 	}
@@ -71,14 +67,9 @@ func TestInsertTodo(t *testing.T) {
 	}
 }
 
-func TestGetTodo(t *testing.T) {
-	pg, err := setupTest()
-	if err != nil {
-		t.Fatalf("Failed to setup test: %v", err)
-	}
-	defer teardownTest(pg)
+func TestGetTodo(t *testing.T, pg *Postgres) {
 	args := "Test Todo"
-	err = pg.InsertTodo(args)
+	err := pg.InsertTodo(args)
 	if err != nil {
 		t.Errorf("InsertTodo failed: %v", err)
 	}
@@ -94,14 +85,9 @@ func TestGetTodo(t *testing.T) {
 	}
 }
 
-func TestDeleteTodo(t *testing.T) {
-	pg, err := setupTest()
-	if err != nil {
-		t.Fatalf("Failed to setup test: %v", err)
-	}
-	defer teardownTest(pg)
+func TestDeleteTodo(t *testing.T, pg *Postgres) {
 	args1 := "TestTodo1"
-	err = pg.InsertTodo(args1)
+	err := pg.InsertTodo(args1)
 	if err != nil {
 		t.Errorf("InsertTodo failed: %v", err)
 	}
@@ -115,14 +101,9 @@ func TestDeleteTodo(t *testing.T) {
 	}
 }
 
-func TestMarkTodoAsDone(t *testing.T) {
-	pg, err := setupTest()
-	if err != nil {
-		t.Fatalf("Failed to setup test: %v", err)
-	}
-	defer teardownTest(pg)
+func TestMarkTodoAsDone(t *testing.T, pg *Postgres) {
 	args1 := "TestTodo1"
-	err = pg.InsertTodo(args1)
+	err := pg.InsertTodo(args1)
 	if err != nil {
 		t.Errorf("InsertTodo failed: %v", err)
 	}
@@ -137,18 +118,13 @@ func TestMarkTodoAsDone(t *testing.T) {
 
 	todo, err := pg.SelectTodo(lastTodo.Id)
 	if todo.Status != true {
-		t.Errorf("Expected todo status to be true: %v", err)
+		t.Errorf("Expected todo status to be true: %v", todo.Status)
 	}
 }
 
-func TestEditTodo(t *testing.T) {
-	pg, err := setupTest()
-	if err != nil {
-		t.Fatalf("Failed to setup test: %v", err)
-	}
-	defer teardownTest(pg)
+func TestEditTodo(t *testing.T, pg *Postgres) {
 	args1 := "Testing todoapp"
-	err = pg.InsertTodo(args1)
+	err := pg.InsertTodo(args1)
 	if err != nil {
 		t.Errorf("InsertTodo failed: %v", err)
 	}
