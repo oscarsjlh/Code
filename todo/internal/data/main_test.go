@@ -5,10 +5,6 @@ import (
 	"log"
 	"os"
 	"testing"
-
-	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
 var dsn = os.Getenv("TODO_DB_DSN")
@@ -22,8 +18,15 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	if err := m.Up(); err != nil {
-		log.Fatal(err)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pg, err := setupTest()
+			if err != nil {
+				t.Fatalf("Failed to setup testdb conn: %v", err)
+			}
+			defer teardownTest(pg)
+			tt.test(t, pg)
+		})
 	}
 }
 
