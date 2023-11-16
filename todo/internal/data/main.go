@@ -17,6 +17,7 @@ type TodoModel interface {
 	MarkTodoAsDone(id int) error
 	EditTodo(id int, task_name string) error
 	SelectTodo(id int) (*Todo, error)
+	GetLastInsertedTodo() (*Todo, error)
 }
 type Todo struct {
 	Id        int
@@ -123,11 +124,23 @@ func (pg *Postgres) EditTodo(id int, task_name string) error {
 	return nil
 }
 
+func (pg *Postgres) GetLastInsertedTodo() (*Todo, error) {
+	query := "SELECT id, task_name, status FROM tasks ORDER BY id DESC LIMIT 1"
+
+	var todo Todo
+	err := pg.DB.QueryRow(context.Background(), query).Scan(&todo.Id, &todo.Task_name, &todo.Status)
+	if err != nil {
+		return nil, err
+	}
+
+	return &todo, nil
+}
+
 func (pg *Postgres) SelectTodo(id int) (*Todo, error) {
-	query := `SELECT task_name, id FROM tasks WHERE id = $1`
+	query := `SELECT task_name, id, status FROM tasks WHERE id = $1`
 	var todo Todo
 	err := pg.DB.QueryRow(context.Background(), query, id).
-		Scan(&todo.Task_name, &todo.Id)
+		Scan(&todo.Task_name, &todo.Id, &todo.Status)
 	if err != nil {
 		log.Println("Error executing query:", err)
 		return &Todo{}, err
