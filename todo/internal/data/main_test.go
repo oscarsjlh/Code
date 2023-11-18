@@ -12,14 +12,15 @@ var dsn = os.Getenv("TODO_DB_DSN")
 func TestTodoOperations(t *testing.T) {
 	tests := []struct {
 		name string
-		test func(*testing.T)
+		test func(*testing.T, *Postgres)
 	}{
-		{"InsertTodo", func(*testing.T) { TestInsertTodo(t) }},
-		{"GetTodo", TestGetTodo},
-		{"DeleteTodo", TestDeleteTodo},
-		{"MarkTodoAsDone", TestMarkTodoAsDone},
-		{"EditTodo", TestEditTodo},
+		{"InsertTodo", testInsertTodo},
+		{"GetTodo", testGetTodo},
+		{"DeleteTodo", testDeleteTodo},
+		{"MarkTodoAsDone", testMarkTodoAsDone},
+		{"EditTodo", testEditTodo},
 	}
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pg, err := setupTest()
@@ -49,97 +50,118 @@ func teardownTest(pg *Postgres) {
 	pg.Close()
 }
 
-func TestInsertTodo(t *testing.T) {
+func testInsertTodo(t *testing.T, pg *Postgres) {
 	args := "Test Todo"
 	err := pg.InsertTodo(args)
 	if err != nil {
-		t.Errorf("InsertTodo failed: %v", err)
+		t.Fatalf("InsertTodo failed: %v", err)
 	}
+
 	lastTodo, err := pg.GetLastInsertedTodo()
 	if err != nil {
-		t.Errorf("Error getting last inserted todo: %v", err)
+		t.Fatalf("Error getting last inserted todo: %v", err)
 	}
-	if lastTodo.Task_name != args {
-		t.Errorf("Expected todo task_name %s, got: %s", args, lastTodo.Task_name)
-	}
-	if lastTodo.Status != false {
-		t.Errorf("Expected todo status false, got: %t", lastTodo.Status)
-	}
+
+	assertEqual(t, lastTodo.Task_name, args, "Task_name mismatch")
+	assertEqual(t, lastTodo.Status, false, "Status mismatch")
 }
 
-func TestGetTodo(t *testing.T, pg *Postgres) {
+func testGetTodo(t *testing.T, pg *Postgres) {
 	args := "Test Todo"
 	err := pg.InsertTodo(args)
 	if err != nil {
-		t.Errorf("InsertTodo failed: %v", err)
+		t.Fatalf("InsertTodo failed: %v", err)
 	}
 
 	todos, err := pg.GetTodo()
 	if err != nil {
-		t.Errorf("Get todo failed: %v", err)
+		t.Fatalf("Get todo failed: %v", err)
 	}
-	tlenght := len(todos)
-	if tlenght < 1 {
-		println(tlenght)
-		t.Errorf("Get todo lenght should be atleast 1: %v", err)
-	}
+
+	assertGreaterThanOrEqual(t, len(todos), 1, "Get todo length should be at least 1")
 }
 
-func TestDeleteTodo(t *testing.T, pg *Postgres) {
-	args1 := "TestTodo1"
-	err := pg.InsertTodo(args1)
+func testDeleteTodo(t *testing.T, pg *Postgres) {
+	args := "TestTodo1"
+	err := pg.InsertTodo(args)
 	if err != nil {
-		t.Errorf("InsertTodo failed: %v", err)
+		t.Fatalf("InsertTodo failed: %v", err)
 	}
+
 	err = pg.RemoveTodo(1)
 	if err != nil {
-		t.Errorf("RemoveTodofailed: %v", err)
+		t.Fatalf("RemoveTodo failed: %v", err)
 	}
+
 	_, err = pg.SelectTodo(1)
-	if err == nil {
-		t.Error("Expected error has todo should have been removed")
-	}
+	assertNotNil(t, err, "Expected error as todo should have been removed")
 }
 
-func TestMarkTodoAsDone(t *testing.T, pg *Postgres) {
-	args1 := "TestTodo1"
-	err := pg.InsertTodo(args1)
+func testMarkTodoAsDone(t *testing.T, pg *Postgres) {
+	args := "TestTodo1"
+	err := pg.InsertTodo(args)
 	if err != nil {
-		t.Errorf("InsertTodo failed: %v", err)
+		t.Fatalf("InsertTodo failed: %v", err)
 	}
+
 	lastTodo, err := pg.GetLastInsertedTodo()
 	if err != nil {
-		t.Errorf("Error getting last inserted todo: %v", err)
+		t.Fatalf("Error getting last inserted todo: %v", err)
 	}
+
 	err = pg.MarkTodoAsDone(lastTodo.Id)
 	if err != nil {
-		t.Errorf("MarkTodo as done failed: %v", err)
+		t.Fatalf("MarkTodo as done failed: %v", err)
 	}
 
 	todo, err := pg.SelectTodo(lastTodo.Id)
-	if todo.Status != true {
-		t.Errorf("Expected todo status to be true: %v", todo.Status)
-	}
+	assertEqual(t, todo.Status, true, "Expected todo status to be true")
 }
 
-func TestEditTodo(t *testing.T, pg *Postgres) {
-	args1 := "Testing todoapp"
-	err := pg.InsertTodo(args1)
+func testEditTodo(t *testing.T, pg *Postgres) {
+	args := "Testing todoapp"
+	err := pg.InsertTodo(args)
 	if err != nil {
-		t.Errorf("InsertTodo failed: %v", err)
+		t.Fatalf("InsertTodo failed: %v", err)
 	}
+
 	lastTodo, err := pg.GetLastInsertedTodo()
 	if err != nil {
-		t.Errorf("Error getting last inserted todo: %v", err)
+		t.Fatalf("Error getting last inserted todo: %v", err)
 	}
+
 	editedArg := "Edited todo"
 	pg.EditTodo(lastTodo.Id, editedArg)
 
-	editedtodo, err := pg.SelectTodo(lastTodo.Id)
+	editedTodo, err := pg.SelectTodo(lastTodo.Id)
 	if err != nil {
-		t.Errorf("Error getting last inserted todo: %v", err)
+		t.Fatalf("Error getting last inserted todo: %v", err)
 	}
-	if editedtodo.Task_name != editedArg {
-		t.Errorf("Editing todo failed testing: %v", err)
+
+	assertEqual(t, editedTodo.Task_name, editedArg, "Editing todo failed")
+}
+
+// Helper functions for assertion
+
+func assertEqual(t *testing.T, actual, expected interface{}, message string) {
+	if actual != expected {
+		t.Errorf("%s: expected %v, got %v", message, expected, actual)
+	}
+}
+
+func assertGreaterThanOrEqual(t *testing.T, value, min int, message string) {
+	if value < min {
+		t.Errorf(
+			"%s: expected value to be greater than or equal to %d, got %d",
+			message,
+			min,
+			value,
+		)
+	}
+}
+
+func assertNotNil(t *testing.T, obj interface{}, message string) {
+	if obj == nil {
+		t.Errorf("%s: expected non-nil value", message)
 	}
 }
