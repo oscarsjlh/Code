@@ -34,6 +34,10 @@ type Postgres struct {
 	DB *pgxpool.Pool
 }
 
+func NewTodoDS(DB *pgxpool.Pool) TodoModel {
+	return &Postgres{DB: DB}
+}
+
 func NewPool(ctx context.Context, dsl string) (*pgxpool.Pool, error) {
 	db, err := pgxpool.New(ctx, dsl)
 	if err != nil {
