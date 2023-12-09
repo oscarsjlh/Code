@@ -2,21 +2,30 @@ package main
 
 import (
 	"fmt"
-	"html/template"
+	"log"
 	"net/http"
-	"strconv"
 	"strings"
+
+	internal "github.com/oscarsjlh/todo/internal/data"
 )
 
+// TodoData is the data passed to the template
+// improve GetTodosHandler
 func (app *application) GetTodosHandler(w http.ResponseWriter, r *http.Request) {
 	todos, err := app.todos.GetTodo()
 	if err != nil {
+		log.Printf("failed to connect to db %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
-	tmpl := template.Must(template.ParseGlob("templates/*.html"))
-	err = tmpl.ExecuteTemplate(w, "index.html", todos)
+	data := TodoData{
+		Todos: todos,
+	}
+	println(todos)
+	err = renderTemplate(w, "index.html", data)
 	if err != nil {
-		println("not working")
+		log.Printf("failed to render tmp %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 		return
 	}
 }
@@ -24,20 +33,21 @@ func (app *application) GetTodosHandler(w http.ResponseWriter, r *http.Request) 
 func (app *application) UpdateHomeHandler(w http.ResponseWriter) {
 	todos, err := app.todos.GetTodo()
 	if err != nil {
-		return
+		log.Fatal("failed to updateHome while getting todos")
 	}
-	tmpl := template.Must(template.ParseGlob("templates/*.html"))
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	err = tmpl.ExecuteTemplate(w, "index.html", todos)
+	data := TodoData{
+		Todos: todos,
+	}
+	err = renderTemplate(w, "index.html", data)
 	if err != nil {
-		return
+		log.Fatal("failed to updateHome while rendering template")
 	}
 }
 
 func (app *application) InsertTodoHandler(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseForm()
 	if err != nil {
-		fmt.Printf("Error parsing form", err)
+		fmt.Printf("Error parsing form %v", err)
 	}
 
 	err = app.todos.InsertTodo(r.FormValue("todo"))
@@ -49,7 +59,7 @@ func (app *application) InsertTodoHandler(w http.ResponseWriter, r *http.Request
 
 func (app *application) RemoveTodoHandler(w http.ResponseWriter, r *http.Request) {
 	idParam := r.URL.Path[len("/delete/"):]
-	id, err := strconv.Atoi(idParam)
+	id, err := validateIDParam(w, idParam)
 	if err != nil {
 		http.Error(w, "Invalid  or missing 'id' parameter", http.StatusBadRequest)
 		return
@@ -65,8 +75,7 @@ func (app *application) RemoveTodoHandler(w http.ResponseWriter, r *http.Request
 
 func (app *application) MarkTodoDoneHandler(w http.ResponseWriter, r *http.Request) {
 	idParam := r.URL.Path[len("/update/"):]
-	id, err := strconv.Atoi(idParam)
-	print(id)
+	id, err := validateIDParam(w, idParam)
 	if err != nil {
 		http.Error(w, "Invalid  or missing 'id' parameter", http.StatusBadRequest)
 		return
@@ -82,7 +91,7 @@ func (app *application) MarkTodoDoneHandler(w http.ResponseWriter, r *http.Reque
 func (app *application) EditHandlerForm(w http.ResponseWriter, r *http.Request) {
 	pathParts := strings.Split(r.URL.Path, "/")
 	idParam := pathParts[len(pathParts)-1]
-	id, err := strconv.Atoi(idParam)
+	id, err := validateIDParam(w, idParam)
 	if err != nil {
 		return
 	}
@@ -90,11 +99,17 @@ func (app *application) EditHandlerForm(w http.ResponseWriter, r *http.Request) 
 	if err != nil {
 		return
 	}
-	fmt.Printf("%s, %v", todo.Task_name, todo.Id)
+	data := TodoData{
+		Todos: []internal.Todo{*todo},
+	}
 
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	editFormTemplate := template.Must(template.ParseFiles("static/edit-form.html"))
-	editFormTemplate.Execute(w, todo)
+	err = renderTemplate(w, "edit-form.html", data)
+	if err != nil {
+		log.Printf("failed to render tmp %v", err)
+		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+		return
+	}
 }
 
 func (app *application) EditTodoHandler(w http.ResponseWriter, r *http.Request) {
@@ -104,8 +119,7 @@ func (app *application) EditTodoHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	idParam := r.URL.Path[len("/edit/"):]
-	id, err := strconv.Atoi(idParam)
-	println(id)
+	id, err := validateIDParam(w, idParam)
 	task := r.Form.Get("task")
 	println(task)
 	err = app.todos.EditTodo(id, task)

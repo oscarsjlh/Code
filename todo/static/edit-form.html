@@ -1,8 +1,8 @@
+{{ range .Todos }}
 <tr>
   <td>
     <input
       class="border border-gray-400 px-4 py-2 mb-2 rounded-lg w-3/5"
-      Pp
       type="text"
       name="task"
       value="{{ .Task_name }}"
@@ -28,3 +28,4 @@
     </button>
   </td>
 </tr>
+{{ end }}

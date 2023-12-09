@@ -8,7 +8,12 @@
   <body>
     <div class="flex flex-col mx-5 justify-center h-screen" id="todos">
       <h1 class="text-3xl text-lime-100 font-bold mb-4 justify-start">Todos</h1>
-      <form class="items-center mb-4" action="/new-todo">
+      <form
+        class="items-center mb-4"
+        hx-put="/new-todo"
+        hx-trigger="submit"
+        hx-target="#todos"
+      >
         <input
           type="text"
           placeholder="Enter new todo"
@@ -36,7 +41,7 @@
             </tr>
           </thead>
           <tbody>
-            {{ range . }} {{ template "table.html" .}} {{ end }}
+            {{ range .Todos }} {{ template "table.html" .}} {{ end }}
           </tbody>
         </table>
       </div>

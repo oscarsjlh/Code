@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/jackc/pgx/v5/pgxpool"
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
 
 type TodoModel interface {
@@ -34,7 +35,7 @@ type Postgres struct {
 	DB *pgxpool.Pool
 }
 
-func NewTodoDS(DB *pgxpool.Pool) TodoModel {
+func NewTodoDS(DB *pgxpool.Pool) *Postgres {
 	return &Postgres{DB: DB}
 }
 
